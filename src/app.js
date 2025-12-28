@@ -13,7 +13,7 @@ app.post("/signup", async (req, res) => {
         await user.save()
         res.send("user added succesfully")
     } catch (error) {
-        res.status(500).send("internal server error")
+        res.status(500).send(error)
     }
 })
 
@@ -69,10 +69,12 @@ app.patch("/user", async (req, res) => {
     console.log(data)
 
     try {
-        await User.findByIdAndUpdate({ _id: userId }, data);
+        await User.findByIdAndUpdate({ _id: userId }, data, {
+            runValidators
+        });
         res.send("user updated succesfully")
     } catch (error) {
-        res.status(400).send("something went wrong")
+        res.status(400).send("falied to update user" + error)
     }
 
 
