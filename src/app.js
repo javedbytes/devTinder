@@ -62,22 +62,25 @@ app.delete("/user", async (req, res) => {
 
 // update data of user
 
-app.patch("/user", async (req, res) => {
-    const userId = req.body.userId
+app.patch("/user/:userId", async (req, res) => {
+    const userId = req.params?.userId
     const data = req.body
 
-    console.log(data)
-
     try {
+        const allowedUpdates = [ "age", "gender", "photoUrl", "about", "skills"]
+
+        const isUpdatedAllowed = Object.keys(data).every((k => allowedUpdates.includes(k)))
+
+        if (!isUpdatedAllowed) {
+            throw new Error("invalid updates")
+        }
         await User.findByIdAndUpdate({ _id: userId }, data, {
-            runValidators
+            runValidators: true
         });
         res.send("user updated succesfully")
     } catch (error) {
         res.status(400).send("falied to update user" + error)
     }
-
-
 })
 
 connectDB().then(() => {
