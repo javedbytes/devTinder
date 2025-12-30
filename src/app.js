@@ -6,10 +6,10 @@ const { validationSignup } = require("./utils/validation")
 const bcrypt = require("bcrypt")
 const cookieParser = require('cookie-parser');
 const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth")
 
 app.use(express.json()) // to parse json body from request middleware
 app.use(cookieParser()); // to parse cookies from request middleware
-
 
 app.post("/signup", async (req, res) => {
     try {
@@ -123,11 +123,15 @@ app.post("/login", async (req, res) => {
 
         if (isPasswordValide) {
             // create jwt token
-            const token = await jwt.sign({ _id: user._id }, "javed@9811")
+            const token = await jwt.sign({ _id: user._id }, "javed@9811",{
+                expiresIn: "1h"
+            })
             console.log("token", token)
             // add token to cookies and send response to user
 
-            res.cookie("token", token)
+            res.cookie("token", token,{
+                expires: new Date(Date.now() + 3600000), // 1 hour
+            })
             res.send("login successful");
         } else {
             res.status(401).send("invalid credentials");
@@ -140,28 +144,18 @@ app.post("/login", async (req, res) => {
 
 })
 
-app.get("/profile", async (req, res) => {
+app.get("/profile", userAuth, async (req, res) => {
     try {
-        // get user profile from db using jwt token from cookies
-        const cookies = req.cookies;
-
-        const { token } = cookies;
-        if (!token) {
-            return res.status(401).send("unauthenticated access, login required")
-        }
-        const decodedValue = await jwt.verify(token, "javed@9811")
-        console.log("decoded value", decodedValue)
-
-        const userId = decodedValue._id;
-        console.log("userId", await User.findById(userId))
-
-        // validate token
-        console.log("cookies", cookies)
-
-        res.send("user profile data" + await User.findById(userId))
+        console.log("user profile", req.user)
+        res.send("user profile data" + req.user)
     } catch (error) {
         res.status(500).send("internal server error" + error.message)
     }
+})
+
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+    const user = req.user;
+    res.send("connection request sent" + user.firstName)
 })
 
 connectDB().then(() => {
