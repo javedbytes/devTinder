@@ -105,6 +105,30 @@ app.patch("/user/:userId", async (req, res) => {
     }
 })
 
+app.post("/login", async (req, res) => {
+    try {
+
+        const { emailId, password } = req.body;
+        const user = await User.findOne({ emailId: emailId });
+
+        if (!user) {
+            return res.status(404).send("user not found");
+        }
+
+        const isPasswordValide = await bcrypt.compare(password, user.password);
+        console.log(isPasswordValide)
+
+        if (!isPasswordValide) {
+            return res.status(401).send("invalid credentials");
+        }
+
+        res.send("login successful");
+    } catch (error) {
+        res.status(500).send("internal server error" + error.message)
+    }
+
+})
+
 connectDB().then(() => {
     console.log("Database connected")
     app.listen(3000, () => {
