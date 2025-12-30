@@ -4,8 +4,11 @@ const app = express();
 const User = require("./models/user");
 const { validationSignup } = require("./utils/validation")
 const bcrypt = require("bcrypt")
+const cookieParser = require('cookie-parser');
+const jwt = require("jsonwebtoken");
 
 app.use(express.json()) // to parse json body from request middleware
+app.use(cookieParser()); // to parse cookies from request middleware
 
 
 app.post("/signup", async (req, res) => {
@@ -118,15 +121,47 @@ app.post("/login", async (req, res) => {
         const isPasswordValide = await bcrypt.compare(password, user.password);
         console.log(isPasswordValide)
 
-        if (!isPasswordValide) {
-            return res.status(401).send("invalid credentials");
+        if (isPasswordValide) {
+            // create jwt token
+            const token = await jwt.sign({ _id: user._id }, "javed@9811")
+            console.log("token", token)
+            // add token to cookies and send response to user
+
+            res.cookie("token", token)
+            res.send("login successful");
+        } else {
+            res.status(401).send("invalid credentials");
         }
 
-        res.send("login successful");
+        // res.send("login successful");
     } catch (error) {
         res.status(500).send("internal server error" + error.message)
     }
 
+})
+
+app.get("/profile", async (req, res) => {
+    try {
+        // get user profile from db using jwt token from cookies
+        const cookies = req.cookies;
+
+        const { token } = cookies;
+        if (!token) {
+            return res.status(401).send("unauthenticated access, login required")
+        }
+        const decodedValue = await jwt.verify(token, "javed@9811")
+        console.log("decoded value", decodedValue)
+
+        const userId = decodedValue._id;
+        console.log("userId", await User.findById(userId))
+
+        // validate token
+        console.log("cookies", cookies)
+
+        res.send("user profile data" + await User.findById(userId))
+    } catch (error) {
+        res.status(500).send("internal server error" + error.message)
+    }
 })
 
 connectDB().then(() => {
