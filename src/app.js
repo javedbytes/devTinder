@@ -2,18 +2,40 @@ const express = require('express');
 const connectDB = require("./config/database")
 const app = express();
 const User = require("./models/user");
+const { validationSignup } = require("./utils/validation")
+const bcrypt = require("bcrypt")
 
 app.use(express.json()) // to parse json body from request middleware
 
+
 app.post("/signup", async (req, res) => {
-
-    const user = new User(req.body) // new instance of the user model
-
     try {
+        // validation of data
+        console.log("request body", req.body)
+        if (req) {
+            validationSignup(req)
+
+        }
+        // Encryption of password
+        const passwordHash = await bcrypt.hash(req.body.password, 10)
+
+        console.log(passwordHash)
+
+        req.body.password = passwordHash
+
+        const user = new User({
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            emailId: req.body.emailId,
+            password: passwordHash,
+            age: req.body.age,
+        }) // new instance of the user model
+
+
         await user.save()
         res.send("user added succesfully")
     } catch (error) {
-        res.status(500).send(error)
+        res.status(500).send(error.message)
     }
 })
 
@@ -67,7 +89,7 @@ app.patch("/user/:userId", async (req, res) => {
     const data = req.body
 
     try {
-        const allowedUpdates = [ "age", "gender", "photoUrl", "about", "skills"]
+        const allowedUpdates = ["age", "gender", "photoUrl", "about", "skills"]
 
         const isUpdatedAllowed = Object.keys(data).every((k => allowedUpdates.includes(k)))
 
