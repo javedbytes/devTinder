@@ -1,24 +1,27 @@
-const { min } = require("moment");
 const mongoose = require("mongoose");
 const validator = require("validator");
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken");
+
+
 
 
 const userSchema = new mongoose.Schema({
     firstName: {
-        type : String,
-        required : true,
+        type: String,
+        required: true,
     },
-    lastName : {
-        type : String,
+    lastName: {
+        type: String,
     },
     emailId: {
-        type : String,
+        type: String,
         required: true,
         unique: true,
         lowercase: true,
-        trim : true,
-        validate(value){
-            if(!validator.isEmail(value)){
+        trim: true,
+        validate(value) {
+            if (!validator.isEmail(value)) {
                 throw new Error("invalid email" + value)
             }
         }
@@ -28,16 +31,16 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     age: {
-        type : Number,
+        type: Number,
         min: 18,
     },
     gender: {
         type: String,
         validate(value) {
-            if(!["male", "female", "other"].includes(value)){
+            if (!["male", "female", "other"].includes(value)) {
                 throw new Error("gender is not valid")
+            }
         }
-    }
     },
     photoUrl: {
         type: String,
@@ -59,4 +62,19 @@ const userSchema = new mongoose.Schema({
 
 // OR 
 
-module.exports = mongoose.model("User",userSchema);
+userSchema.methods.getJWT = async function () { // no arrow function
+    const user = this;
+    const token = await jwt.sign({ _id: user._id }, "javed@9811", {
+        expiresIn: "1h"
+    })
+    return token;
+};
+
+userSchema.methods.validatePassword = async function (passwordInputByUser) { // no arrow function
+    const user = this;
+    const passwordHash = user.password;
+    const isPasswordValid = await bcrypt.compare(passwordInputByUser, passwordHash);
+    return isPasswordValid;
+};
+
+module.exports = mongoose.model("User", userSchema);
